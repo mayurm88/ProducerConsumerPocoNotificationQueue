@@ -52,7 +52,7 @@ public:
         return resStr;
     }
 private:
-    std::string resStr; // Response string if the user wants to convert to JSON
+    std::string resStr;
 };
 
 
@@ -105,7 +105,6 @@ public:
                                                 FastMutex::ScopedLock lock(CommonMutex::commonMutex);
                                                 std::cout << _name << " got response " << pResponseNf->getResponse() << std::endl;
                                         }
-                                        //Thread::sleep(rnd.next(200));
                                 }
                         }
                         else break;
@@ -115,7 +114,6 @@ public:
 private:
         std::string        _name;
         NotificationQueue& _queue;
-        static FastMutex   _mutex;
 };
 
 class Post{
@@ -146,7 +144,6 @@ class MyProducer: public Runnable
 private:
         std::string        _name;
         NotificationQueue& _queue;
-        static FastMutex   my_mutex;
 public:
         MyProducer(const std::string& name, NotificationQueue& queue):
                 _name(name),
@@ -158,25 +155,7 @@ public:
         {
             Post p;
             Poco::Random rnd;
-           /*
-                for (;;)
-                {
-                        Notification::Ptr pNf(_queue.waitDequeueNotification());
-                        if (pNf)
-                        {
-                                ResponseNotification::Ptr pResponseNf = pNf.cast<ResponseNotification>();
-                                if (pResponseNf)
-                                {
-                                        {
-                                                FastMutex::ScopedLock lock(_mutex);
-                                                std::cout << _name << " got work notification " << pResponseNf->getResponse() << std::endl;
-                                        }
-                                        Thread::sleep(rnd.next(200));
-                                }
-                        }
-                        else break;
-                }
-          */
+           
             for(int i = 1; i < 50; i++){
                 {
                     
@@ -189,7 +168,6 @@ public:
                     }
                 }
                 
-                //Thread::sleep(rnd.next(10));
             }
             std::cout<<"Producer completed it's job"<<std::endl;
         }
@@ -197,8 +175,6 @@ public:
 
 };
 
-FastMutex Worker::_mutex;
-FastMutex MyProducer::my_mutex;
 FastMutex CommonMutex::commonMutex;
 
 
@@ -211,10 +187,6 @@ int main(int argc, char** argv)
         Worker worker2("Worker 2", queue);
         Worker worker3("Worker 3", queue);
         MyProducer producer1("Producer1", queue);
-        //MyProducer producer2("Producer2", queue);
-        //MyProducer producer3("Producer3", queue);
-
-        // start worker threads
         Thread tWorker1, tWorker2, tWorker3, tProducer1;
         tWorker1.start(worker1);
         tWorker2.start(worker2);
@@ -222,23 +194,10 @@ int main(int argc, char** argv)
         
         //Thread::sleep(3000);
         tProducer1.start(producer1);
-        //ThreadPool::defaultPool().start(producer2);
-        //ThreadPool::defaultPool().start(producer3);
-
-        // distribute some work
-        //for (int i = 0; i < 50; ++i)
-        //{
-        //        queue.enqueueNotification(new ResponseNotification(new Response("JSON" + std::to_string(i))));
-        //}
-
-        // wait until queue is empty and all threads are
-        // waiting for new work.
-        //while (!queue.empty()) Thread::sleep(200);
         tProducer1.join();
         Thread::sleep(20000);
 
         // stop all worker threads
-        
         queue.wakeUpAll();
         
 
